@@ -46,7 +46,7 @@ The **Resume Shortlisting System** helps a company hire faster and more consiste
 
 The AI makes recommendations while **humans stay in the loop**. HR can shortlist or reject any candidate, and a one-hour review window before interviews are booked gives HR time to change any outcome.
 
-> The system supports HR decision-making; it does not replace it. AI scores should be treated as recommendations.
+
 
 ---
 
@@ -93,7 +93,7 @@ Many hiring steps are repetitive and rule-based, so they suit automation. The fi
 
 ---
 
-## ⚙️ How It Works
+## ⚙️ Solution Overview
 
 The system has six cooperating components:
 
@@ -118,6 +118,8 @@ The candidate side is deliberately simple. A single "Apply for a position" page 
 
 Candidates **never see scores or statuses**. They are emailed only when an interview is scheduled, rescheduled, or cancelled. If the job list is empty or the system can't be reached, the portals show three sample positions with a notice.
 
+(docs/images/candidate-portal.png)
+
 ### What happens after submit
 
 1. **Duplicate check.** If the same name, email, and job already exist, the process stops. Nothing is saved and the AI is not called.
@@ -128,26 +130,8 @@ Candidates **never see scores or statuses**. They are emailed only when an inter
 6. **Rules applied.** The AI's reply is validated (score clamped to 0–100) and converted into a status.
 7. **Result saved.** Name, email, score, status, reason, and CV link are saved in the `Resume` table.
 8. **Extras prepared in the background.** The interview kit is generated (skipped for Not Qualified) and the CV is embedded for similarity search.
-
-```mermaid
-flowchart TD
-    A[Candidate submits<br/>name, email, job, CV PDF] --> B{Duplicate?}
-    B -- yes --> Z[Stop: nothing saved, no AI call]
-    B -- no --> C[Save original CV to Supabase Storage]
-    C --> D[Extract text from PDF]
-    D --> E{Fewer than 100 characters?}
-    E -- yes --> F[Gemini transcribes scanned PDF]
-    E -- no --> G[Load selected job]
-    F --> G
-    G --> H[Gemini scores CV 0-100 + reason]
-    H --> I[Validate and band]
-    I --> J[Shortlisted<br/>75-100]
-    I --> K[HR Review<br/>60-74 or fallback]
-    I --> L[Not Qualified<br/>below 60]
-    J & K & L --> M[Save candidate record]
-    M --> N[Generate interview kit<br/>skipped for Not Qualified]
-    M --> O[Embed CV text<br/>for talent-pool search]
-```
+9. 
+(docs/images/cv-screening-flow.png)
 
 ### Scoring criteria
 
@@ -168,9 +152,12 @@ flowchart TD
 
 ### Safety nets: no one is rejected because of a technical problem
 
-1. **Scanned CVs** are sent to Gemini to be transcribed, then scored normally.
-2. **AI scoring failed** (unreadable CV or invalid AI response): the candidate is saved as **HR Review** with score `0` and the note *"AI scoring failed. Review this CV manually."*
-3. **Original CV kept** and openable from the HR portal in every case.
+1. **Scanned CVs:** Some CVs are pictures of text. An ordinary text reader sees nothing, which would make a good candidate look empty and score badly. The system notices this, sends the PDF to Gemini, which reads and transcribes it, and then scores it normally.
+2. **AI scoring failed:** (unreadable CV or invalid AI response):If a CV cannot be read or the AI’s response cannot be understood, the candidate is saved as**HR Review** with a score of 0 and a clear note explaining the issue (*"AI scoring failed. Review this CV manually."*). This prevents the system from scoring empty or invalid content, avoids workflow failures, and ensures that no candidate is unfairly rejected.
+3. **Original CV kept:** The original file is stored and can be opened from the HR portal in every case.
+   
+(docs/images/error-fallback.png)
+
 
 ### HR Portal
 
@@ -183,26 +170,16 @@ HR must enter a **Job ID** for every action, then describes the job in one of tw
 1. **Fill in the details:** title, department, location, minimum experience, required skills, preferred skills, description.
 2. **Upload a job description PDF:** Gemini extracts the fields.
 
+   (docs/images/hr-portal.png)
+
 | Action | What happens |
 |---|---|
 | **Create** | HR enters a unique Job ID (saved in capitals) plus details or a PDF. If the ID exists, nothing is saved and HR sees *"Job ID already exists"*. Otherwise the job is saved as `open`. |
 | **Edit** | The form loads current values and the Job ID is locked. Saving updates the job from typed details or a new PDF. |
 | **Delete (Close)** | After confirmation, the status becomes `closed`. It disappears from both portals but stays in the database. |
 
-```mermaid
-flowchart TD
-    A[HR enters job ID + details] --> B{PDF uploaded?}
-    B -- yes --> C[Gemini extracts fields]
-    B -- no --> D[Build job record<br/>typed values override AI values]
-    C --> D
-    D --> E{Action}
-    E -- Create --> F{Job ID exists?}
-    F -- yes --> G[Reject: Job ID already exists]
-    F -- no --> H[Save job as open]
-    H --> I[Trigger talent-pool re-matching]
-    E -- Edit --> J[Update existing job]
-    E -- Delete --> K[Set status to closed]
-```
+ (docs/images/job-posting-flow.png)
+ 
 
 #### Candidates tab
 
@@ -211,9 +188,13 @@ flowchart TD
 3. **View CV:** opens the original CV in a new tab.
 4. **Shortlist / Reject:** the only two accepted decisions. This is how HR Review candidates get resolved and how a human overrules the AI.
 
+(docs/images/hr-portal-candidates.png)
+
 #### Interviews tab
 
-Each scheduled candidate appears with date, time, and status. HR can **Reschedule**, **Cancel**, or open the **Interview Kit**.
+Each candidate with an interview appears with the interview date, time and status. From here HR can **Reschedule** an interview, **Cancel** it, or open the **Interview Kit**.
+
+(docs/images/hr-portal-interviews.png)
 
 ### Daily HR Report (6 PM)
 
@@ -223,6 +204,8 @@ Every day at 6 PM, HR receives one email containing:
 - **Three Excel attachments** (one per group) listing name, email, job, score, experience, status, and the AI's analysis. Empty groups contain a note such as *"No HR Review candidates today"*
 
 HR can review or change any decision **before 7 PM**. If nothing changes, the process continues automatically.
+
+(docs/images/email-daily-report.png)
 
 ---
 
@@ -244,6 +227,8 @@ A schedule runs daily at **7 PM (Asia/Karachi)**, one hour after the HR email. T
 
 If no free slot is found within 30 days, the run stops and the error workflow alerts the technical team.
 
+(docs/images/calender-event.png)
+
 ### Rescheduling
 
 | Option | What happens |
@@ -252,6 +237,9 @@ If no free slot is found within 30 days, the run stops and the error workflow al
 | **Book next available slot** | The system scans the calendar and books the earliest free weekday slot (9 AM – 5 PM) from the next day. |
 
 In both cases the existing calendar event is **moved** (no duplicates), the database record is updated, and the candidate receives an updated-details email.
+
+(docs/images/reschedule.png)(docs/images/reschedule-email.png)
+
 
 ### Cancelling and reinstating
 
@@ -282,6 +270,8 @@ A ready-made briefing sheet for the interviewer. Gemini compares each CV with it
 
 **When and where:** the kit is created at application time for every candidate who is not *Not Qualified* and has a readable CV. It's stored with the candidate's record. HR opens it via **Interviews tab → View Interview Kit** (pop-up with a Copy button). It is not added to calendar events or emails.
 
+(docs/images/interview-kit.png)
+
 ---
 
 ## 🔁 Talent-Pool Re-Matching
@@ -294,6 +284,8 @@ When a new job is created, the system looks at past candidates with status **HR 
 4. **Re-score with Gemini.** Gemini scores each past candidate against the new job, ignoring the earlier outcome, and writes a short reason.
 5. **Keep the good matches.** Only scores of **60 or more** are saved as matches.
 6. **Report.** An Excel file is emailed to HR. If nobody matches, no email is sent. HR is advised to review CVs in the portal before contacting anyone.
+
+(docs/images/talent-pool--hr-portal-candidated.png)
 
 **Excel report** (e.g. `Talent_Matches_DA-01.xlsx`, named after the job code, best score first):
 
@@ -308,18 +300,29 @@ When a new job is created, the system looks at past candidates with status **HR 
 | Similarity | Vector similarity between CV and new job |
 | Why They Fit | Gemini's short explanation |
 
+(docs/images/talent-matches-mail.png)
+
+
+### Daily Schedule Timeline
+
+(docs/images/schedule-timelinet.png)
+
 ---
 
+## 🛡️ Reliability and Error Handling
 
-### Daily timeline
+| Situation | What the system does |
+|---|---|
+| Duplicate application | Stopped before any file is stored or AI is used |
+| Duplicate Job ID | Rejected with a clear message |
+| Scanned or image-only CV | Sent to Gemini for reading, then scored normally |
+| Unreadable CV | Saved as HR Review with an explanatory note |
+| Invalid AI reply | Saved as HR Review with an "AI scoring failed" note |
+| Calendar clash on manual reschedule | Not booked; HR is asked to choose another time |
+| Repeated talent-match trigger | No effect, because the job was already scanned |
+| Workflow failure | A separate error workflow emails the technical team the failed step, the error, and the time. Users never see it |
 
-```mermaid
-flowchart LR
-    A[Any time<br/>Candidates apply, AI scores them] --> B[6:00 PM<br/>Daily report email to HR]
-    B --> C[1-hour HR window<br/>Resolve HR Review, shortlist, or reject]
-    C --> D[7:00 PM<br/>Auto-schedule interviews]
-    D --> E[Any time<br/>HR reschedules or cancels]
-```
+(docs/images/workflow-failue.png)
 
 ---
 
@@ -398,24 +401,6 @@ cd <your-repo>
 
 ---
 
-## 🖥️ Usage
-
-
-
-## 🛡️ Reliability and Error Handling
-
-| Situation | What the system does |
-|---|---|
-| Duplicate application | Stopped before any file is stored or AI is used |
-| Duplicate Job ID | Rejected with a clear message |
-| Scanned or image-only CV | Sent to Gemini for reading, then scored normally |
-| Unreadable CV | Saved as HR Review with an explanatory note |
-| Invalid AI reply | Saved as HR Review with an "AI scoring failed" note |
-| Calendar clash on manual reschedule | Not booked; HR is asked to choose another time |
-| Repeated talent-match trigger | No effect, because the job was already scanned |
-| Workflow failure | A separate error workflow emails the technical team the failed step, the error, and the time. Users never see it |
-
----
 
 ## 🗄️ Data Model
 
@@ -456,6 +441,7 @@ Contributions are welcome!
 
 ## 📬 Contact
 
-**Your Name** - [your.email@example.com](mailto:your.email@example.com) - [GitHub](https://github.com/<your-username>)
+**Hamna Khalid** - [hamnakhalid399@gmail.com](mailto:your.email@example.com) - 
+linkedin: www.linkedin.com/in/hamnak
 
 *Version 1.0 · October 2026*
