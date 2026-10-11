@@ -259,10 +259,8 @@ If no free slot is found within 30 days, the run stops and the error workflow al
 In both cases the existing calendar event is **moved** (no duplicates), the database record is updated, and the candidate receives an updated-details email.
 
 <div>
-  <img src="docs/images/reschedule.PNG" alt="reschedule" width="500">
-</div>
-<div>
-  <img src="docs/images/reschedule-email.PNG" alt="reschedule-email" width="500">
+  <img src="docs/images/reschedule.PNG" alt="reschedule" width="400">
+  <img src="docs/images/reschedule-email.PNG" alt="reschedule-email" width="400">
 </div>
 
 
@@ -375,7 +373,7 @@ When a new job is created, the system looks at past candidates with status **HR 
 
 ---
 
-## 📸 Screenshots
+<!--## 📸 Screenshots
 
 > Place your images in `docs/images/` and update the paths below.
 
@@ -389,7 +387,7 @@ When a new job is created, the system looks at past candidates with status **HR 
 
 | Daily HR Email | Google Calendar |
 |---|---|
-| ![Daily email](docs/images/daily-email.png) | ![Calendar](docs/images/calendar.png) |
+| ![Daily email](docs/images/daily-email.png) | ![Calendar](docs/images/calendar.png) |-->
 
 **n8n workflow**
 
