@@ -29,6 +29,7 @@
 - [Reliability and Error Handling](#-reliability-and-error-handling)
 - [Data Model](#-data-model)
 - [Business Value](#-business-value)
+- [Future Recommendations](#-future-recommendations)
 - [Contributing](#-contributing)
 - [License](#-license)
 
@@ -467,6 +468,21 @@ All data lives in Supabase.
 8. **Traceability.** Scores, reasons, CVs, and interview records are all stored.
 
 ---
+## Future Recommendations
+
+**1. HR-Controlled Interview Windows**
+
+Instead of auto-scheduling all shortlisted candidates at 7 PM, HR picks a date and time window in the portal (e.g. 15 Oct, 10 AM to 1 PM). The workflow assigns back-to-back slots only inside that window, creates the calendar events, and emails the candidates. Candidates who don’t fit stay unscheduled for the next window.
+
+**Benefit:** Interviews match HR’s real availability, and the repetitive work stays automated.
+
+**2. AI Voice Screening Call**
+
+Shortlisted candidates receive an automated call from an AI voice agent for an initial screening. The AI assesses the candidate’s interest and seriousness, and uses that to recommend whether the candidate should be scheduled for an interview. HR can review and override the result, and unclear or failed calls go to HR rather than being rejected automatically.
+
+**Benefit:** Interview slots go to candidates who have shown real interest, and HR spends less time on phone screening.
+
+**Flow:** CV scoring → Shortlisted → AI screening call → HR picks window → interview scheduled
 
 ## 🤝 Contributing
 
