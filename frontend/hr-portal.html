@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TalentAI | HR Portal</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg,#fdf4ff 0%,#f0fdfa 50%,#fff7ed 100%); background-attachment: fixed; min-height: 100vh; }
+  .card { background: rgba(255,255,255,.65); border: 1px solid rgba(216,180,254,.4); backdrop-filter: blur(16px); border-radius: 20px; box-shadow: 0 8px 32px rgba(199,165,255,.15); }
+  .field { width: 100%; background: rgba(255,255,255,.85); border: 1px solid #ede9fe; border-radius: 12px; padding: 10px 14px; color: #3f3f46; }
+  .field:focus { outline: none; border-color: #c4b5fd; }
+  .btn { background: linear-gradient(135deg,#c4b5fd,#f9a8d4); color: #fff; font-weight: 700; border-radius: 12px; padding: 10px 22px; }
+  .btn:disabled { opacity: .6; }
+  .tab { padding: 8px 20px; border-radius: 12px; font-weight: 600; color: #71717a; background: rgba(255,255,255,.5); border: 1px solid #ede9fe; }
+  .tab-on { background: linear-gradient(135deg,#c4b5fd,#f9a8d4); color: #fff; border-color: transparent; }
+  .mini { padding: 6px 14px; border-radius: 10px; font-weight: 600; font-size: 13px; color: #fff; }
+  .mini:disabled { opacity: .35; }
+</style>
+</head>
+<body class="text-zinc-600">
+<main class="max-w-3xl mx-auto px-6 py-12 space-y-8">
+  <header>
+    <h1 class="text-3xl font-bold text-zinc-800">HR portal</h1>
+    <p class="mt-2">Post a job by filling in the form, by uploading a job description PDF, or both.</p>
+  </header>
+
+  <nav class="flex gap-2">
+    <button id="tabJobs" type="button" class="tab tab-on">Jobs</button>
+    <button id="tabCands" type="button" class="tab">Candidates</button>
+    <button id="tabInts" type="button" class="tab">Interviews</button>
+  </nav>
+
+  <!-- JOBS TAB (existing content, unchanged) -->
+  <div id="jobsTab" class="space-y-8">
+
+  <!-- Open jobs: pick one to edit or delete (three-dots menu opens the closed jobs list) -->
+  <section class="card p-6">
+    <div class="flex items-center justify-between mb-2" style="position:relative">
+      <label class="block text-sm font-semibold text-zinc-700">Open jobs</label>
+      <button id="menuBtn" type="button" aria-label="More options" class="text-zinc-400 hover:text-zinc-600 px-2 text-xl leading-none" style="letter-spacing:1px">&#8942;</button>
+      <div id="menuBox" class="hidden" style="position:absolute; right:0; top:100%; z-index:20; background:#fff; border:1px solid #ede9fe; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.08); min-width:11rem; overflow:hidden">
+        <button id="toggleClosed" type="button" class="w-full text-left text-sm text-zinc-600 px-4 py-2 hover:bg-zinc-50">Show closed jobs</button>
+      </div>
+    </div>
+    <div class="flex flex-col sm:flex-row gap-3">
+      <select id="jobSelect" class="field"></select>
+      <button id="editBtn" class="btn">Edit</button>
+      <button id="deleteBtn" class="btn" style="background:#fb7185">Delete</button>
+    </div>
+    <div id="closedWrap" class="hidden mt-4 pt-3 border-t border-zinc-100">
+      <p class="text-sm font-semibold text-zinc-700 mb-1">Closed jobs</p>
+      <div id="closedBox" class="space-y-1"></div>
+    </div>
+  </section>
+
+  <!-- Create / edit form -->
+  <section class="card p-6">
+    <h2 id="formTitle" class="text-xl font-semibold text-zinc-800 mb-4">New job</h2>
+    <form id="jobForm" class="space-y-4">
+      <div>
+        <label class="block text-sm font-semibold text-zinc-700 mb-2">Job ID (required, must be unique)</label>
+        <input id="job_code" class="field" placeholder="e.g. BE-101">
+      </div>
+      <div class="flex flex-col sm:flex-row gap-3 sm:gap-6 text-sm text-zinc-700">
+        <label><input type="radio" name="mode" value="fields" checked> Fill in the details</label>
+        <label><input type="radio" name="mode" value="file"> Upload a job description file</label>
+      </div>
+      <div id="fieldsBox" class="space-y-4">
+      <div class="grid sm:grid-cols-2 gap-4">
+        <input id="job_title" class="field" placeholder="Job title">
+        <input id="department" class="field" placeholder="Department">
+        <input id="location" class="field" placeholder="Location">
+        <input id="min_experience_years" type="number" min="0" class="field" placeholder="Minimum experience (years)">
+      </div>
+      <input id="required_skills" class="field" placeholder="Required skills (comma separated)">
+      <input id="preferred_skills" class="field" placeholder="Preferred skills (comma separated)">
+      <textarea id="job_description" rows="4" class="field" placeholder="Job description"></textarea>
+      </div>
+      <div id="fileBox" class="hidden">
+        <label class="block text-sm font-semibold text-zinc-700 mb-2">Job description file (PDF)</label>
+        <input id="jd_file" type="file" accept=".pdf" class="field">
+        <p class="text-xs text-zinc-400 mt-1">Put all the job details in one PDF. n8n reads it and fills in the job for you.</p>
+      </div>
+      <div class="flex gap-3">
+        <button id="saveBtn" type="submit" class="btn">Create job</button>
+        <button id="cancelBtn" type="button" class="hidden px-4 text-zinc-500">Cancel edit</button>
+      </div>
+      <p id="msg" class="text-sm"></p>
+    </form>
+  </section>
+  </div>
+  <!-- END JOBS TAB -->
+
+  <!-- CANDIDATES TAB -->
+  <div id="candsTab" class="hidden space-y-6">
+    <section class="card p-6">
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-semibold text-zinc-700 mb-2">Job</label>
+          <select id="cJob" class="field"></select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-zinc-700 mb-2">Status</label>
+          <select id="cStatus" class="field">
+            <option value="All">All</option>
+            <option>Shortlisted</option>
+            <option>HR Review</option>
+            <option>Not Qualified</option>
+            <option>Rejected</option>
+          </select>
+        </div>
+      </div>
+      <p id="cDemo" class="hidden text-xs text-amber-600 mt-3">Demo mode: these are dummy candidates and nothing is saved. Set USE_DUMMY_DATA to false in the script to use n8n.</p>
+    </section>
+    <p id="cMsg" class="text-sm"></p>
+    <section id="cList" class="space-y-4"></section>
+  </div>
+
+  <!-- INTERVIEWS TAB -->
+  <div id="intsTab" class="hidden space-y-4" style="width:min(64rem, calc(100vw - 3rem)); position:relative; left:50%; transform:translateX(-50%)">
+    <p id="iDemo" class="hidden text-xs text-amber-600">Demo mode: these are dummy interviews and nothing is saved, no calendar events or emails are touched. Set USE_DUMMY_INTERVIEWS to false in the script to use n8n.</p>
+    <p id="iMsg" class="text-sm"></p>
+    <section class="card p-2 sm:p-4 overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead>
+          <tr class="text-xs uppercase tracking-wide text-zinc-400">
+            <th class="px-3 py-2 font-semibold">Candidate</th>
+            <th class="px-3 py-2 font-semibold">Job</th>
+            <th class="px-3 py-2 font-semibold whitespace-nowrap">Interview date</th>
+            <th class="px-3 py-2 font-semibold">Time</th>
+            <th class="px-3 py-2 font-semibold">Status</th>
+            <th class="px-3 py-2 font-semibold">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="iBody"></tbody>
+      </table>
+    </section>
+  </div>
+</main>
+
+<!-- Pop-up used by Cancel and Reschedule -->
+<div id="modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(63,63,70,.35)">
+  <div id="modalBox" class="card p-6 w-full max-w-md" style="background:rgba(255,255,255,.96)"></div>
+</div>
+
+<!-- Pop-up used by View Interview Kit -->
+<div id="kitModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(63,63,70,.35)">
+  <div class="card p-6 w-full max-w-2xl" style="background:rgba(255,255,255,.96); max-height:85vh; display:flex; flex-direction:column">
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <h3 class="text-lg font-semibold text-zinc-800">Interview kit</h3>
+        <p id="kitSub" class="text-sm text-zinc-500 mt-1"></p>
+      </div>
+      <button id="kitX" type="button" class="text-zinc-400 text-2xl leading-none" aria-label="Close">&times;</button>
+    </div>
+    <div id="kitBody" class="mt-4 text-sm overflow-y-auto pr-1" style="min-height:0"></div>
+    <div class="flex gap-3 mt-5">
+      <button id="kitCopy" type="button" class="btn">Copy kit</button>
+      <button id="kitClose" type="button" class="px-4 text-zinc-500">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ====== SETTINGS: replace with your n8n URL (use /webhook-test while testing, /webhook when active) ======
+  const BASE_URL = "http://localhost:5678/webhook";
+  const HR_URL   = BASE_URL + "/hr-job";
+  const JOBS_URL = BASE_URL + "/jobs";
+  const REOPEN_URL = BASE_URL + "/job-reopen";   // POST: set a closed job back to open
+  // ==========================================================================================================
+
+  const $ = (id) => document.getElementById(id);
+  const fields = ["job_title","department","location","min_experience_years","required_skills","preferred_skills","job_description"];
+  let jobs = [];
+  let editingId = null;
+  let mode = "fields";   // "fields" = type the details, "file" = upload a job description file
+
+  // Sample positions, shown only when the jobs list is empty or unreachable
+  const SAMPLE_JOBS = [
+    { id: 1, job_title: "Senior Full-Stack Engineer", department: "Engineering", location: "Hybrid", min_experience_years: 5, required_skills: "React, Node.js, PostgreSQL, REST APIs", preferred_skills: "TypeScript, AWS, Docker", job_description: "Build and maintain web applications end to end." },
+    { id: 2, job_title: "Frontend Developer", department: "Engineering", location: "Remote", min_experience_years: 2, required_skills: "HTML, CSS, JavaScript, React", preferred_skills: "Tailwind, TypeScript, Figma", job_description: "Build responsive, accessible user interfaces." },
+    { id: 3, job_title: "Data Analyst", department: "Analytics", location: "Onsite", min_experience_years: 3, required_skills: "SQL, Excel, Python, data visualization", preferred_skills: "Power BI, Tableau, statistics", job_description: "Turn business data into reports and insights." }
+  ];
+
+  function setMode(m) {
+    mode = m;
+    document.querySelector(`input[name=mode][value=${m}]`).checked = true;
+    $("fieldsBox").classList.toggle("hidden", m !== "fields");
+    $("fileBox").classList.toggle("hidden", m !== "file");
+  }
+  document.querySelectorAll("input[name=mode]").forEach(r => r.onchange = () => setMode(r.value));
+
+  function say(text, ok) { $("msg").textContent = text; $("msg").className = "text-sm " + (ok ? "text-emerald-600" : "text-rose-500"); }
+
+  // Load open jobs into the dropdown
+  async function loadJobs() {
+    try {
+      const res = await fetch(JOBS_URL);
+      const data = await res.json().catch(() => []);
+      jobs = (Array.isArray(data) ? data : [data]).filter(j => j && j.id);
+    } catch (e) { jobs = []; }
+    if (!jobs.length) { jobs = SAMPLE_JOBS; say("Showing sample positions: the open jobs list is empty or n8n is unreachable.", false); }
+    $("jobSelect").innerHTML = jobs.length
+      ? jobs.map(j => `<option value="${j.id}">${j.job_code ? j.job_code + ": " : ""}${j.job_title}${j.location ? " (" + j.location + ")" : ""}</option>`).join("")
+      : '<option value="">No open jobs yet</option>';
+  }
+
+  // Send a request to the HR webhook (multipart, so the PDF can travel too)
+  async function sendToHR(action, jobId) {
+    const fd = new FormData();
+    fd.append("action", action);
+    fd.append("job_code", $("job_code").value.trim().toUpperCase());
+    if (jobId) fd.append("job_id", jobId);
+    if (action !== "delete") {
+      if (mode === "fields") fields.forEach(f => fd.append(f, $(f).value));
+      else fd.append("jd_file", $("jd_file").files[0]);
+    }
+    const res = await fetch(HR_URL, { method: "POST", body: fd });
+    if (!res.ok) throw new Error("n8n returned " + res.status);
+    // A duplicate Job ID is rejected by the database, and n8n passes the error back
+    const text = await res.text();
+    if (action === "create" && /duplicate key|"error"\s*:/i.test(text)) throw new Error("DUPLICATE");
+  }
+
+  function resetForm() {
+    editingId = null;
+    $("jobForm").reset();
+    setMode("fields");
+    $("formTitle").textContent = "New job";
+    $("job_code").readOnly = false;
+    $("saveBtn").textContent = "Create job";
+    $("cancelBtn").classList.add("hidden");
+  }
+
+  // Edit: load the selected job into the form
+  $("editBtn").onclick = () => {
+    const job = jobs.find(j => String(j.id) === $("jobSelect").value);
+    if (!job) return say("Select a job first.", false);
+    setMode("fields");
+    fields.forEach(f => $(f).value = Array.isArray(job[f]) ? job[f].join(", ") : (job[f] ?? ""));
+    editingId = job.id;
+    $("job_code").value = job.job_code || "";
+    $("job_code").readOnly = !!job.job_code;
+    $("formTitle").textContent = "Edit job";
+    $("saveBtn").textContent = "Save changes";
+    $("cancelBtn").classList.remove("hidden");
+    say("", true);
+  };
+  $("cancelBtn").onclick = resetForm;
+
+  // Delete: closes the position
+  $("deleteBtn").onclick = async () => {
+    const id = $("jobSelect").value;
+    if (!id || !confirm("Close this position? It will disappear from the candidate portal.")) return;
+    try { await sendToHR("delete", id); say("Job closed.", true); resetForm(); setTimeout(() => { loadJobs(); if (closedOpen) loadClosedJobs(); }, 1000); }
+    catch (e) { say("Could not close the job: " + e.message, false); }
+  };
+
+  // Create or save changes
+  $("jobForm").onsubmit = async (e) => {
+    e.preventDefault();
+    if (!$("job_code").value.trim()) return say("Enter a Job ID.", false);
+    if (mode === "file" && !$("jd_file").files[0]) return say("Choose a job description file to upload.", false);
+    if (mode === "fields" && !$("job_title").value) return say("Enter a job title.", false);
+    $("saveBtn").disabled = true;
+    say("Saving... reading the PDF can take a few seconds.", true);
+    try {
+      await sendToHR(editingId ? "edit" : "create", editingId);
+      say(editingId ? "Job updated." : "Job created.", true);
+      resetForm(); await loadJobs();
+    } catch (err) { say(err.message === "DUPLICATE" ? "A job with this Job ID already exists. Use a different Job ID, or select that job and edit it." : "Could not save: " + err.message, false); }
+    $("saveBtn").disabled = false;
+  };
+
+  // ===== Closed jobs: list them and re-open =====
+  function escJ(t) { return String(t ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+  let closedOpen = false;
+
+  async function loadClosedJobs() {
+    const box = $("closedBox");
+    box.innerHTML = '<p class="text-sm text-zinc-400">Loading...</p>';
+    let list = [];
+    try {
+      const res = await fetch(JOBS_URL + (JOBS_URL.includes("?") ? "&" : "?") + "status=closed&_=" + Date.now(), { cache: "no-store" });
+      const data = await res.json().catch(() => []);
+      // keep only closed rows, so open jobs never show a Reopen button
+      list = (Array.isArray(data) ? data : [data]).filter(j => j && j.id && String(j.status).toLowerCase() === "closed");
+    } catch (e) { box.innerHTML = '<p class="text-sm text-rose-500">Could not load closed jobs. Is n8n running?</p>'; return; }
+    if (!list.length) { box.innerHTML = '<p class="text-sm text-zinc-400">No closed jobs.</p>'; return; }
+    box.innerHTML = list.map(j => `
+      <div class="flex items-center justify-between gap-3 py-2 border-t border-zinc-100">
+        <div class="text-sm text-zinc-700">${escJ(j.job_code ? j.job_code + ": " : "")}${escJ(j.job_title)}${j.location ? " <span class='text-zinc-400'>(" + escJ(j.location) + ")</span>" : ""}</div>
+        <button type="button" class="btn" data-reopen="${escJ(j.id)}" style="padding:.4rem .9rem">Reopen</button>
+      </div>`).join("");
+    box.querySelectorAll("[data-reopen]").forEach(b => b.onclick = () => reopenJob(b.dataset.reopen, b));
+  }
+
+  async function reopenJob(id, btn) {
+    if (!confirm("Re-open this position? It will appear again in the open jobs list and the candidate portal.")) return;
+    btn.disabled = true; btn.textContent = "Reopening...";
+    try {
+      const fd = new FormData(); fd.append("job_id", id);
+      const res = await fetch(REOPEN_URL, { method: "POST", body: fd });
+      if (!res.ok) throw new Error("n8n returned " + res.status);
+      say("Job re-opened.", true);
+      await loadJobs();
+      await loadClosedJobs();
+    } catch (e) { say("Could not re-open the job: " + e.message, false); btn.disabled = false; btn.textContent = "Reopen"; }
+  }
+
+  // three-dots menu (top right of the Open jobs card)
+  $("menuBtn").onclick = (e) => { e.stopPropagation(); $("menuBox").classList.toggle("hidden"); };
+  document.addEventListener("click", (e) => { if (!$("menuBox").contains(e.target)) $("menuBox").classList.add("hidden"); });
+  $("toggleClosed").onclick = () => {
+    closedOpen = !closedOpen;
+    $("menuBox").classList.add("hidden");
+    $("closedWrap").classList.toggle("hidden", !closedOpen);
+    $("toggleClosed").textContent = closedOpen ? "Hide closed jobs" : "Show closed jobs";
+    if (closedOpen) loadClosedJobs();
+  };
+
+  loadJobs();
+</script>
+
+<script>
+  // ====== CANDIDATES TAB SETTINGS ======
+  // true = test with dummy candidates (nothing is saved); false = use the n8n webhooks below
+  const USE_DUMMY_DATA = false;
+  const CAND_URL   = BASE_URL + "/candidates";
+  const STATUS_URL = BASE_URL + "/candidate-status";
+  // =====================================
+
+  // Dummy candidates. job_id matches the sample jobs (1, 2, 3)
+  const DUMMY = [
+    { id: 101, job_id: 1, candidate_name: "Ayesha Khan",   candidate_email: "ayesha.khan@example.com",   match_score: 91, status: "Shortlisted",   analysis_summary: "Strong React and Node.js background with 6 years of experience. Matches all required skills and most preferred ones." },
+    { id: 102, job_id: 1, candidate_name: "Bilal Ahmed",   candidate_email: "bilal.ahmed@example.com",   match_score: 72, status: "HR Review",     analysis_summary: "Good React and REST API skills, but only 4 years of experience against the 5 required. No PostgreSQL mentioned." },
+    { id: 103, job_id: 1, candidate_name: "Sara Malik",    candidate_email: "sara.malik@example.com",    match_score: 68, status: "HR Review",     analysis_summary: "Solid frontend work and a relevant degree. Backend experience is limited to small projects." },
+    { id: 104, job_id: 1, candidate_name: "Kamran Yousaf", candidate_email: "kamran.yousaf@example.com", match_score: 61, status: "Rejected",      analysis_summary: "Meets some required skills, but experience is mostly in a different stack." },
+    { id: 105, job_id: 1, candidate_name: "Usman Tariq",   candidate_email: "usman.tariq@example.com",   match_score: 54, status: "Not Qualified", analysis_summary: "Junior profile with 1 year of experience and few of the required skills." },
+    { id: 201, job_id: 2, candidate_name: "Hina Raza",     candidate_email: "hina.raza@example.com",     match_score: 84, status: "Shortlisted",   analysis_summary: "Three years of React and Tailwind work with a good portfolio. Covers all required and most preferred skills." },
+    { id: 202, job_id: 2, candidate_name: "Daniyal Shah",  candidate_email: "daniyal.shah@example.com",  match_score: 63, status: "HR Review",     analysis_summary: "Knows HTML, CSS and JavaScript well, but has no React experience listed." },
+    { id: 203, job_id: 2, candidate_name: "Maria Iqbal",   candidate_email: "maria.iqbal@example.com",   match_score: 47, status: "Not Qualified", analysis_summary: "Mostly design experience. Little evidence of production JavaScript work." },
+    { id: 301, job_id: 3, candidate_name: "Omar Farooq",   candidate_email: "omar.farooq@example.com",   match_score: 78, status: "Shortlisted",   analysis_summary: "Four years of SQL and Python analysis, with Power BI dashboards. Slightly light on statistics." },
+    { id: 302, job_id: 3, candidate_name: "Zainab Ali",    candidate_email: "zainab.ali@example.com",    match_score: 66, status: "HR Review",     analysis_summary: "Strong Excel and SQL skills, but 2 years of experience against the 3 required." },
+    { id: 303, job_id: 3, candidate_name: "Hamza Butt",    candidate_email: "hamza.butt@example.com",    match_score: 58, status: "Not Qualified", analysis_summary: "Some reporting experience, but no Python and limited data visualization work." }
+  ];
+
+  const BADGE = { "Shortlisted": "bg-emerald-100 text-emerald-700", "HR Review": "bg-amber-100 text-amber-700", "Not Qualified": "bg-zinc-100 text-zinc-500", "Rejected": "bg-rose-100 text-rose-600" };
+  let cands = [];
+
+  // Link for the View CV button: PDFs open directly, Word files open in Microsoft's online viewer
+  function cvLink(u) {
+    return /\.docx($|\?)/i.test(u)
+      ? "https://view.officeapps.live.com/op/view.aspx?src=" + encodeURIComponent(u)
+      : u;
+  }
+  function esc(s) {
+    return String(s ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+  }
+  function cSay(text, ok) { $("cMsg").textContent = text; $("cMsg").className = "text-sm " + (ok ? "text-emerald-600" : "text-rose-500"); }
+
+  function showTab(t) {
+    $("jobsTab").classList.toggle("hidden", t !== "jobs");
+    $("candsTab").classList.toggle("hidden", t !== "cands");
+    $("intsTab").classList.toggle("hidden", t !== "ints");
+    $("tabJobs").classList.toggle("tab-on", t === "jobs");
+    $("tabCands").classList.toggle("tab-on", t === "cands");
+    $("tabInts").classList.toggle("tab-on", t === "ints");
+    if (t === "cands") loadCandJobs();
+    if (t === "ints") loadInterviews();
+  }
+  $("tabJobs").onclick = () => showTab("jobs");
+  $("tabCands").onclick = () => showTab("cands");
+  $("tabInts").onclick = () => showTab("ints");
+
+  // Fill the job dropdown, then load that job's candidates
+  async function loadCandJobs() {
+    $("cDemo").classList.toggle("hidden", !USE_DUMMY_DATA);
+    cSay("", true);
+    let list = [];
+    if (USE_DUMMY_DATA) list = SAMPLE_JOBS;
+    else {
+      try {
+        const res = await fetch(JOBS_URL);
+        const data = await res.json().catch(() => []);
+        list = (Array.isArray(data) ? data : [data]).filter(j => j && j.id);
+      } catch (e) { cSay("Cannot reach n8n. Check that the workflow is running and BASE_URL is correct.", false); }
+    }
+    $("cJob").innerHTML = list.length
+      ? list.map(j => `<option value="${esc(j.id)}">${esc(j.job_code ? j.job_code + ": " : "")}${esc(j.job_title)}</option>`).join("")
+      : '<option value="">No open jobs yet</option>';
+    await loadCands();
+  }
+
+  async function loadCands() {
+    const id = $("cJob").value;
+    if (!id) { cands = []; return renderCands(); }
+    if (USE_DUMMY_DATA) { cands = DUMMY.filter(c => String(c.job_id) === id); return renderCands(); }
+    try {
+      const res = await fetch(CAND_URL + "?job_id=" + encodeURIComponent(id));
+      if (!res.ok) throw new Error("n8n returned " + res.status);
+      const data = await res.json().catch(() => []);
+      cands = (Array.isArray(data) ? data : [data]).filter(c => c && c.id);
+    } catch (e) {
+      cands = [];
+      cSay("Could not load candidates: n8n is unreachable or returned an error.", false);
+    }
+    renderCands();
+  }
+
+  function renderCands() {
+    const f = $("cStatus").value;
+    const rows = cands
+      .filter(c => f === "All" || c.status === f)
+      .sort((a, b) => (b.match_score || 0) - (a.match_score || 0));
+    if (!rows.length) {
+      $("cList").innerHTML = `<div class="card p-6 text-sm text-zinc-500">${cands.length ? "No candidates with this status for this job." : "No candidates have applied for this job yet."}</div>`;
+      return;
+    }
+    $("cList").innerHTML = rows.map(c => {
+      const s = Number(c.match_score) || 0;
+      const scoreColor = s >= 75 ? "text-emerald-600" : s >= 60 ? "text-amber-600" : "text-rose-500";
+      return `<article class="card p-5">
+        <div class="flex items-start justify-between gap-4">
+          <div class="min-w-0">
+            <h3 class="font-semibold text-zinc-800 truncate">${esc(c.candidate_name)}</h3>
+            <p class="text-sm text-zinc-500 truncate">${esc(c.candidate_email)}</p>
+          </div>
+          <div class="text-right shrink-0">
+            <p class="text-2xl font-bold ${scoreColor}">${s}<span class="text-sm text-zinc-400">/100</span></p>
+            <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-semibold ${BADGE[c.status] || "bg-zinc-100 text-zinc-500"}">${esc(c.status)}</span>
+          </div>
+        </div>
+        <p class="text-sm mt-3">${esc(c.analysis_summary)}</p>
+        <div class="flex flex-wrap gap-2 mt-4">
+          ${c.cv_url ? `<a class="mini" style="background:#a78bfa" href="${esc(cvLink(c.cv_url))}" target="_blank" rel="noopener">View CV</a>` : `<span class="text-xs text-zinc-400 self-center">No CV saved</span>`}
+          <button class="mini" style="background:#34d399" data-id="${esc(c.id)}" data-s="Shortlisted" ${c.status === "Shortlisted" ? "disabled" : ""}>Shortlist</button>
+          <button class="mini" style="background:#fb7185" data-id="${esc(c.id)}" data-s="Rejected" ${c.status === "Rejected" ? "disabled" : ""}>Reject</button>
+        </div>
+      </article>`;
+    }).join("");
+  }
+
+  // Shortlist / Reject
+  async function setStatus(id, status) {
+    if (USE_DUMMY_DATA) {
+      const c = cands.find(x => String(x.id) === String(id));
+      if (c) c.status = status;
+      renderCands();
+      return cSay("Demo: status changed to " + status + ".", true);
+    }
+    try {
+      const fd = new FormData();
+      fd.append("id", id);
+      fd.append("status", status);
+      const res = await fetch(STATUS_URL, { method: "POST", body: fd });
+      if (!res.ok) throw new Error("n8n returned " + res.status);
+      await loadCands();
+      cSay("Status updated to " + status + ".", true);
+    } catch (e) { cSay("Could not update the status: " + e.message, false); }
+  }
+
+  $("cList").onclick = (e) => {
+    const b = e.target.closest("button[data-id]");
+    if (b && !b.disabled) setStatus(b.dataset.id, b.dataset.s);
+  };
+  $("cJob").onchange = () => { cSay("", true); loadCands(); };
+  $("cStatus").onchange = renderCands;
+</script>
+
+<script>
+  // ====== INTERVIEWS TAB SETTINGS ======
+  // true = test with dummy interviews (nothing is saved, no calendar or email); false = use the n8n webhooks below
+  const USE_DUMMY_INTERVIEWS = false;
+  const INTERVIEWS_URL           = BASE_URL + "/interviews";            // GET: candidates that have an interview
+  const INTERVIEW_CANCEL_URL     = BASE_URL + "/interview-cancel";      // POST: cancel an interview
+  const INTERVIEW_RESCHEDULE_URL = BASE_URL + "/interview-reschedule";  // POST: reschedule an interview
+  const DEFAULT_INTERVIEW_MINUTES = 30;                                 // used only if a record has no end time
+  // Demo mode only: working hours used to pretend to find the "next available slot"
+  const DUMMY_DAY_START = 10, DUMMY_DAY_END = 17;
+  // =====================================
+
+  const IBADGE = { "Scheduled": "bg-emerald-100 text-emerald-700", "Rescheduled": "bg-violet-100 text-violet-700", "Cancelled": "bg-rose-100 text-rose-600", "Completed": "bg-zinc-100 text-zinc-500" };
+  const pad = n => String(n).padStart(2, "0");
+  const ymd = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  const toMin = t => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+  const fromMin = n => pad(Math.floor(n / 60)) + ":" + pad(n % 60);
+  //const timeOf = v => { const m = String(v || "").match(/(\d{1,2}):(\d{2})/); return m ? pad(+m[1]) + ":" + m[2] : ""; };
+     const PORTAL_TZ = "Asia/Karachi";
+   const timeOf = v => {
+     const str = String(v || "");
+     if (/T\d{1,2}:\d{2}.*(Z|[+-]\d{2}:?\d{2})$/.test(str)) {
+       const d = new Date(str);
+       if (!isNaN(d)) {
+         const p = new Intl.DateTimeFormat("en-GB", { timeZone: PORTAL_TZ, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(d);
+         return p.find(x => x.type === "hour").value + ":" + p.find(x => x.type === "minute").value;
+       }
+     }
+     const m = str.match(/(\d{1,2}):(\d{2})/);
+     return m ? pad(+m[1]) + ":" + m[2] : "";
+   };
+   
+   
+  function fmtDate(d) { const [y, m, day] = d.split("-").map(Number); return new Date(y, m - 1, day).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
+  function fmtTime(t) { if (!t) return ""; const [h, m] = t.split(":").map(Number); return ((h % 12) || 12) + ":" + pad(m) + " " + (h < 12 ? "AM" : "PM"); }
+
+  // ---- Dummy data (dates are relative to today, so there is always something to test) ----
+  function nthWeekday(n) {
+    const d = new Date(); d.setHours(0, 0, 0, 0);
+    let k = 0;
+    while (k < n) { d.setDate(d.getDate() + 1); if (d.getDay() !== 0 && d.getDay() !== 6) k++; }
+    return ymd(d);
+  }
+  const d1 = nthWeekday(1), d2 = nthWeekday(2), d3 = nthWeekday(3);
+  let dummyRaw = [
+    { id: 401, job_id: 1, job_title: "Full Stack Engineer",         candidate_name: "Ali Khan",     candidate_email: "ali.khan@example.com",     interview_date: d1, interview_start_time: "10:00", interview_end_time: "10:30", interview_status: "Scheduled", calendar_event_id: "dummy_evt_401" },
+    { id: 101, job_id: 1, job_title: "Senior Full-Stack Engineer",  candidate_name: "Ayesha Khan",  candidate_email: "ayesha.khan@example.com",  interview_date: d1, interview_start_time: "11:30", interview_end_time: "12:00", interview_status: "Scheduled", calendar_event_id: "dummy_evt_101" },
+    { id: 201, job_id: 2, job_title: "Frontend Developer",          candidate_name: "Hina Raza",    candidate_email: "hina.raza@example.com",    interview_date: d2, interview_start_time: "10:00", interview_end_time: "10:30", interview_status: "Scheduled", calendar_event_id: "dummy_evt_201" },
+    { id: 301, job_id: 3, job_title: "Data Analyst",                candidate_name: "Omar Farooq",  candidate_email: "omar.farooq@example.com",  interview_date: d2, interview_start_time: "14:00", interview_end_time: "14:30", interview_status: "Scheduled", calendar_event_id: "dummy_evt_301" },
+    { id: 102, job_id: 1, job_title: "Senior Full-Stack Engineer",  candidate_name: "Bilal Ahmed",  candidate_email: "bilal.ahmed@example.com",  interview_date: d3, interview_start_time: "15:00", interview_end_time: "15:30", interview_status: "Cancelled", calendar_event_id: "" }
+  ];
+  // Dummy interview kits for testing the "View Interview Kit" pop-up (demo mode only)
+  const DUMMY_KITS = {
+    401: `TECHNICAL QUESTIONS
+1. Walk me through the most complex full-stack feature you built end to end. What was your part?
+Why: The JD needs full-stack ownership, and the CV lists several projects without describing individual roles.
+2. How did you design the API and database schema for it, and what would you change today?
+Why: Backend design is a required skill, and the CV mentions Node.js and PostgreSQL only briefly.
+3. Describe a production bug you debugged. How did you find the root cause?
+Why: This tests practical problem solving beyond the tools listed on the CV.
+4. How do you handle authentication and authorization in your Node.js apps?
+Why: Secure API design is a core responsibility in the JD.
+5. How do you keep a React app fast as it grows?
+Why: The CV claims React expertise; this checks depth.
+
+CV VERIFICATION QUESTIONS
+1. Your CV says "expert in React" with 1 year of listed experience. Can you describe the biggest React app you built?
+Why: Checks depth behind the stated skill level.
+2. What was your exact role in the 2022 e-commerce project, and how big was the team?
+Why: Team size and role are unclear on the CV.
+
+CV GAPS
+- Cloud deployment (AWS/GCP/Azure) (Not mentioned). Ask: Have you deployed an application to a cloud platform?
+- Automated testing (Insufficient evidence). Ask: What testing do you write for your own code?
+
+POINTS TO CLARIFY (RED FLAGS)
+- [Needs verification] Three roles in the last 2 years. Evidence: each lasted under 8 months. Ask: What led you to move on from each role?
+
+FOCUS AREAS
+- Real depth in React versus the CV claim.
+- Backend and database design decisions.
+- Deployment and testing habits.`,
+    101: `TECHNICAL QUESTIONS
+1. You led a team of 4 on your last project. How did you split work and review code?
+Why: The JD asks for senior-level technical leadership.
+2. How would you design a scalable job-application system with file uploads?
+Why: Matches the type of system this role will own.
+3. Explain how you optimized a slow SQL query or API endpoint.
+Why: Performance tuning is a required skill.
+4. What is your approach to CI/CD and how have you set it up before?
+Why: The CV mentions Docker but no pipeline experience.
+5. How do you mentor junior developers?
+Why: Mentoring is listed in the JD responsibilities.
+
+CV VERIFICATION QUESTIONS
+1. What measurable results came from the team you led?
+Why: The CV describes leadership but gives no results.
+2. Two of your jobs overlap in 2021-2022. Can you explain the timeline?
+Why: Dates on the CV overlap.
+
+CV GAPS
+- GraphQL (Not mentioned). Ask: Have you worked with GraphQL APIs?
+- Microservices and message queues (Insufficient evidence). Ask: Have you worked with an event-driven setup?
+
+POINTS TO CLARIFY (RED FLAGS)
+- [Inconsistency] Overlapping employment dates. Evidence: two roles listed for 2021-2022. Ask: Were these roles held at the same time?
+
+FOCUS AREAS
+- Leadership results and team size.
+- System design thinking.
+- Employment timeline.`,
+    201: `TECHNICAL QUESTIONS
+1. Describe a UI you built that you are proud of. What were the trade-offs?
+Why: The CV lists projects but no decisions or outcomes.
+2. How do you manage state in a medium-sized React app?
+Why: State management is a required skill in the JD.
+3. How do you approach accessibility and responsive design?
+Why: The role builds public-facing pages.
+4. How do you work with designers on handoff?
+Why: The JD expects close collaboration with design.
+5. How do you debug a rendering performance issue?
+Why: Performance is a stated responsibility.
+
+CV VERIFICATION QUESTIONS
+1. Which of your freelance projects can we look at live?
+Why: Most experience is freelance and no portfolio link is given.
+2. How were your freelance projects delivered and reviewed?
+Why: Clarifies working practices on projects with no employer.
+
+CV GAPS
+- TypeScript (Not mentioned). Ask: Have you used TypeScript in a real project?
+- Testing tools such as Jest or Cypress (Not mentioned). Ask: How do you test your front-end code?
+
+POINTS TO CLARIFY (RED FLAGS)
+No significant red flags identified from the provided CV.
+
+FOCUS AREAS
+- Portfolio quality.
+- Testing habits.
+- Experience working inside a team.`,
+    301: `TECHNICAL QUESTIONS
+1. Can you describe the techniques you used to cut a report from 6 hours to 40 minutes?
+Why: Tests SQL optimization depth, a core requirement.
+2. How did you design and validate the pricing A/B test behind the 9% increase in repeat purchases?
+Why: Checks statistical knowledge behind a measurable result.
+3. Which Python libraries did you use for segmentation, and how did you pick the number of clusters?
+Why: The JD requires Python; the CV shows it only in one project.
+4. How did you handle seasonality or outliers in your ARIMA forecast?
+Why: Probes the advanced modeling claimed on the CV.
+5. How did you choose visuals for dashboards used by 30+ managers?
+Why: Checks visualization strategy for non-technical users.
+
+CV VERIFICATION QUESTIONS
+1. Give an example of a data quality issue you found while cleaning 1M+ rows.
+Why: Verifies large-scale data cleaning experience.
+2. What was your own contribution to the k-means project compared to the team?
+Why: Clarifies individual ownership.
+
+CV GAPS
+None found
+
+POINTS TO CLARIFY (RED FLAGS)
+No significant red flags identified from the provided CV.
+
+FOCUS AREAS
+- SQL optimization depth.
+- Turning analysis into business decisions.
+- Individual contribution on team projects.`,
+    102: `TECHNICAL QUESTIONS
+1. Describe the architecture of the largest app you have worked on.
+Why: The role needs system-level thinking.
+2. How do you structure a React and Node.js project for maintainability?
+Why: Both are required skills in the JD.
+3. Tell me about a deadline you missed and what you learned from it.
+Why: Delivery under pressure is part of the role.
+
+CV VERIFICATION QUESTIONS
+1. Which recent projects used the JD's main framework?
+Why: The CV shows no recent work with it.
+
+CV GAPS
+- Recent experience with the main framework (Insufficient evidence). Ask: When did you last use it in production?
+
+POINTS TO CLARIFY (RED FLAGS)
+- [Needs verification] Interview was cancelled. Evidence: status is Cancelled. Ask: Confirm the candidate is still interested before using this kit.
+
+FOCUS AREAS
+- Recent hands-on experience.
+- Architecture decisions.
+- Delivery track record.`
+  };
+  dummyRaw.forEach(r => { r.interview_kit = DUMMY_KITS[r.id] || ""; });
+
+  // Other events already in the HR calendar (demo only), so slot checks have something to collide with
+  const DUMMY_BUSY_EXTRA = [
+    { date: d1, start: "14:00", end: "15:00" },
+    { date: d2, start: "11:00", end: "13:00" }
+  ];
+
+  let iRows = [];       // interviews shown in the table
+  let rInt = null;      // interview currently open in the pop-up
+  let rMode = "next";   // "next" or "manual"
+  let iWorking = false;
+
+  function iSay(text, ok) { $("iMsg").textContent = text; $("iMsg").className = "text-sm " + (ok ? "text-emerald-600" : "text-rose-500"); }
+
+  // Turn a database row into a simple object. Accepts a few spellings of the start/end time columns.
+  function normInterview(r) {
+    const get = (...keys) => { for (const k of keys) if (r[k] != null && r[k] !== "") return r[k]; return ""; };
+    const start = timeOf(get("interview_start_time", "interview_start", "interview start time"));
+    let end = timeOf(get("interview_end_time", "interview_end", "interview end time"));
+    if (start && !end) end = fromMin(toMin(start) + DEFAULT_INTERVIEW_MINUTES);
+    const job = (typeof jobs !== "undefined" ? jobs : []).find(j => String(j.id) === String(r.job_id));
+    return {
+      id: r.id, name: r.candidate_name, email: r.candidate_email,
+      job: r.job_title || (job && job.job_title) || "",
+      date: String(get("interview_date")).slice(0, 10), start, end,
+      status: get("interview_status") || "Scheduled",
+      eventId: get("interview_event_id", "calendar_event_id"),
+      kit: get("interview_kit")
+    };
+  }
+
+  async function loadInterviews() {
+    $("iDemo").classList.toggle("hidden", !USE_DUMMY_INTERVIEWS);
+    iSay("", true);
+    let raw = [];
+    if (USE_DUMMY_INTERVIEWS) raw = dummyRaw;
+    else {
+      try {
+        //const res = await fetch(INTERVIEWS_URL);
+		   const res = await fetch(INTERVIEWS_URL + (INTERVIEWS_URL.includes("?") ? "&" : "?") + "_=" + Date.now(), { cache: "no-store" });
+		
+		
+        if (!res.ok) throw new Error("n8n returned " + res.status);
+        const data = await res.json().catch(() => []);
+        raw = (Array.isArray(data) ? data : [data]).filter(r => r && r.id && (r.interview_status || r.interview_date));
+      } catch (e) { iSay("Could not load interviews: n8n is unreachable or returned an error.", false); }
+    }
+    iRows = raw.map(normInterview).sort((a, b) =>
+      (a.status === "Cancelled") - (b.status === "Cancelled") || (a.date + a.start).localeCompare(b.date + b.start));
+    renderInterviews();
+  }
+
+  function renderInterviews() {
+    if (!iRows.length) {
+      $("iBody").innerHTML = `<tr><td colspan="6" class="px-3 py-6 text-zinc-500">No interviews yet. They appear here once candidates are scheduled.</td></tr>`;
+      return;
+    }
+    $("iBody").innerHTML = iRows.map(i => {
+      const cancelled = i.status === "Cancelled";
+      return `<tr class="border-t border-violet-100 ${cancelled ? "opacity-60" : ""}">
+        <td class="px-3 py-3"><p class="font-semibold text-zinc-800">${esc(i.name)}</p><p class="text-xs text-zinc-400">${esc(i.email)}</p></td>
+        <td class="px-3 py-3">${esc(i.job)}</td>
+        <td class="px-3 py-3 whitespace-nowrap">${i.date ? esc(fmtDate(i.date)) : "-"}</td>
+        <td class="px-3 py-3 whitespace-nowrap">${i.start ? esc(fmtTime(i.start)) : "-"}</td>
+        <td class="px-3 py-3"><span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${IBADGE[i.status] || "bg-zinc-100 text-zinc-500"}">${esc(i.status)}</span></td>
+        <td class="px-3 py-3 whitespace-nowrap">
+          <button class="mini" style="background:#a78bfa" data-act="resched" data-id="${esc(i.id)}">Reschedule</button>
+          <button class="mini" style="background:#fb7185" data-act="cancel" data-id="${esc(i.id)}" ${cancelled ? "disabled" : ""}>Cancel</button>
+          <button class="mini" style="background:#2dd4bf" data-act="kit" data-id="${esc(i.id)}">View Interview Kit</button>
+        </td>
+      </tr>`;
+    }).join("");
+  }
+
+  $("iBody").onclick = (e) => {
+    const b = e.target.closest("button[data-act]");
+    if (!b || b.disabled) return;
+    const it = iRows.find(x => String(x.id) === b.dataset.id);
+    if (!it) return;
+    if (b.dataset.act === "kit") openKit(it);
+    else if (b.dataset.act === "cancel") openCancel(it); else openResched(it);
+  };
+
+  // ---- Pop-up helpers ----
+  function openModal(html) { $("modalBox").innerHTML = html; $("modal").classList.remove("hidden"); }
+  function closeModal() { if (iWorking) return; $("modal").classList.add("hidden"); $("modalBox").innerHTML = ""; rInt = null; }
+  $("modal").onclick = (e) => { if (e.target === $("modal")) closeModal(); };
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
+  function summary(i) { return `${esc(i.name)} &middot; ${esc(i.job)}<br><span class="text-zinc-400">Currently ${i.date ? esc(fmtDate(i.date)) : "-"} at ${esc(fmtTime(i.start))}</span>`; }
+
+  // Send one request to n8n and work out what happened
+  async function postInterview(url, fd) {
+    const res = await fetch(url, { method: "POST", body: fd });
+    const text = await res.text();
+    let data = null; try { data = JSON.parse(text); } catch (e) {}
+    if (res.status === 409 || (data && (data.error === "slot_unavailable" || data.available === false))) throw new Error("UNAVAILABLE");
+    if (!res.ok) throw new Error("n8n returned " + res.status);
+    if (data && !Array.isArray(data) && data.error) throw new Error(data.message || data.error);
+    if (Array.isArray(data) && data[0] && data[0].error) throw new Error(data[0].message || data[0].error);
+    if (data && data.success === false) throw new Error(data.message || data.error || "The request failed");
+    return data;
+  }
+  function baseForm(i) {
+    const fd = new FormData();
+    fd.append("id", i.id);
+    fd.append("interview_event_id", i.eventId || "");   // the name the n8n workflow reads
+    fd.append("calendar_event_id", i.eventId || "");
+    fd.append("candidate_name", i.name || "");
+    fd.append("candidate_email", i.email || "");
+    fd.append("job_title", i.job || "");
+    fd.append("interview_date", i.date);
+    fd.append("interview_start_time", i.start);
+    fd.append("interview_end_time", i.end);
+    return fd;
+  }
+
+  // ---- Cancel ----
+  function openCancel(i) {
+    openModal(`
+      <h3 class="text-lg font-semibold text-zinc-800">Cancel this interview?</h3>
+      <p class="text-sm mt-2">${summary(i)}</p>
+      <p class="text-sm mt-3">The event will be removed from Google Calendar and a cancellation email will be sent to <b>${esc(i.email)}</b>. The candidate stays in the database.</p>
+      <p id="mErr" class="text-sm text-rose-500 mt-3"></p>
+      <div class="flex gap-3 mt-5">
+        <button id="mYes" class="btn" style="background:#fb7185">Yes, cancel interview</button>
+        <button id="mNo" class="px-4 text-zinc-500">Keep interview</button>
+      </div>`);
+    rInt = i;
+    $("mNo").onclick = closeModal;
+    $("mYes").onclick = doCancel;
+  }
+
+  async function doCancel() {
+    const i = rInt;
+    iWorking = true; $("mYes").disabled = true; $("mYes").textContent = "Cancelling...";
+    try {
+      if (USE_DUMMY_INTERVIEWS) {
+        const r = dummyRaw.find(x => x.id === i.id);
+        if (r) { r.interview_status = "Cancelled"; r.calendar_event_id = ""; }
+      } else await postInterview(INTERVIEW_CANCEL_URL, baseForm(i));
+      iWorking = false; closeModal();
+      await loadInterviews();
+      iSay(USE_DUMMY_INTERVIEWS ? `Demo: interview with ${i.name} cancelled (no email sent).` : `Interview with ${i.name} cancelled. A cancellation email was sent.`, true);
+    } catch (e) {
+      iWorking = false;
+      $("mYes").disabled = false; $("mYes").textContent = "Yes, cancel interview";
+      $("mErr").textContent = "Could not cancel the interview: " + e.message;
+    }
+  }
+
+  // ---- Reschedule ----
+  function openResched(i) {
+    rInt = i; rMode = "next";
+    const today = ymd(new Date());
+    openModal(`
+      <h3 class="text-lg font-semibold text-zinc-800">Reschedule interview</h3>
+      <p class="text-sm mt-2">${summary(i)}</p>
+      <div class="flex gap-2 mt-4">
+        <button type="button" id="rmNext" class="tab tab-on text-sm">Next available slot</button>
+        <button type="button" id="rmManual" class="tab text-sm">Choose manually</button>
+      </div>
+      <div id="rNextBox" class="text-sm mt-4">We will find the earliest free time in Google Calendar and book it.</div>
+      <div id="rManualBox" class="hidden mt-4 grid grid-cols-2 gap-3">
+        <div><label class="block text-xs font-semibold text-zinc-700 mb-1">New date</label><input id="rDate" type="date" min="${today}" class="field"></div>
+        <div><label class="block text-xs font-semibold text-zinc-700 mb-1">New time</label><input id="rTime" type="time" step="900" value="10:00" class="field"></div>
+        <p class="col-span-2 text-xs text-zinc-400">We will check Google Calendar first. If the time is taken, you can pick another one.</p>
+      </div>
+      <p class="text-xs text-zinc-400 mt-3">An email with the new date and time will be sent to ${esc(i.email)}.</p>
+      <p id="mErr" class="text-sm text-rose-500 mt-3"></p>
+      <div class="flex gap-3 mt-5">
+        <button id="rGo" class="btn">Find slot and reschedule</button>
+        <button id="rClose" class="px-4 text-zinc-500">Close</button>
+      </div>`);
+    $("rmNext").onclick = () => setRMode("next");
+    $("rmManual").onclick = () => setRMode("manual");
+    $("rClose").onclick = closeModal;
+    $("rGo").onclick = doResched;
+  }
+
+  function setRMode(m) {
+    rMode = m;
+    $("rmNext").classList.toggle("tab-on", m === "next");
+    $("rmManual").classList.toggle("tab-on", m === "manual");
+    $("rNextBox").classList.toggle("hidden", m !== "next");
+    $("rManualBox").classList.toggle("hidden", m !== "manual");
+    $("rGo").textContent = m === "next" ? "Find slot and reschedule" : "Check availability and reschedule";
+    $("mErr").textContent = "";
+  }
+
+  // Demo-only calendar simulation
+  function dummyBusy(excludeId) {
+    return [
+      ...dummyRaw.map(normInterview).filter(x => x.status !== "Cancelled" && x.id !== excludeId).map(x => ({ date: x.date, start: x.start, end: x.end })),
+      ...DUMMY_BUSY_EXTRA
+    ];
+  }
+  const clashes = (busy, date, s, e) => busy.some(b => b.date === date && s < toMin(b.end) && toMin(b.start) < e);
+  function dummyNextSlot(i) {
+    const dur = (i.start && i.end) ? toMin(i.end) - toMin(i.start) : DEFAULT_INTERVIEW_MINUTES;
+    const busy = dummyBusy(i.id), earliest = new Date(Date.now() + 60 * 60000);
+    const day = new Date(); day.setHours(0, 0, 0, 0);
+    for (let n = 0; n < 60; n++, day.setDate(day.getDate() + 1)) {
+      if (day.getDay() === 0 || day.getDay() === 6) continue;
+      const ds = ymd(day);
+      for (let m = DUMMY_DAY_START * 60; m + dur <= DUMMY_DAY_END * 60; m += 30) {
+        if (new Date(day.getFullYear(), day.getMonth(), day.getDate(), 0, m) < earliest) continue;
+        if (ds === i.date && fromMin(m) === i.start) continue;
+        if (clashes(busy, ds, m, m + dur)) continue;
+        return { date: ds, start: fromMin(m), end: fromMin(m + dur) };
+      }
+    }
+    return null;
+  }
+
+  async function doResched() {
+    const i = rInt;
+    const dur = (i.start && i.end) ? toMin(i.end) - toMin(i.start) : DEFAULT_INTERVIEW_MINUTES;
+    let slot = null;
+    $("mErr").textContent = "";
+    if (rMode === "manual") {
+      const date = $("rDate").value, time = $("rTime").value;
+      if (!date || !time) return $("mErr").textContent = "Choose a date and a time.";
+      if (new Date(date + "T" + time) < new Date()) return $("mErr").textContent = "Choose a time in the future.";
+      slot = { date, start: time, end: fromMin(toMin(time) + dur) };
+    }
+    iWorking = true; $("rGo").disabled = true; $("rClose").disabled = true;
+    $("rGo").textContent = rMode === "next" ? "Finding a slot..." : "Checking calendar...";
+    try {
+      if (USE_DUMMY_INTERVIEWS) {
+        if (rMode === "next") { slot = dummyNextSlot(i); if (!slot) throw new Error("No free slot found in the next 60 days."); }
+        else if (clashes(dummyBusy(i.id), slot.date, toMin(slot.start), toMin(slot.end))) throw new Error("UNAVAILABLE");
+        const r = dummyRaw.find(x => x.id === i.id);
+        Object.assign(r, { interview_date: slot.date, interview_start_time: slot.start, interview_end_time: slot.end, interview_status: "Scheduled", calendar_event_id: "dummy_evt_" + Date.now() });
+      } else {
+        // n8n deletes the old event (old calendar_event_id), creates the new one, updates Supabase and emails the candidate
+        const fd = baseForm(i);
+        fd.append("mode", rMode);
+        if (rMode === "manual") { fd.append("new_date", slot.date); fd.append("new_start_time", slot.start); fd.append("new_end_time", slot.end); }
+        await postInterview(INTERVIEW_RESCHEDULE_URL, fd);
+      }
+      iWorking = false; closeModal();
+      await loadInterviews();
+      const now = iRows.find(x => String(x.id) === String(i.id));
+      const when = now && now.date ? ` Now ${fmtDate(now.date)} at ${fmtTime(now.start)}.` : "";
+      iSay(USE_DUMMY_INTERVIEWS ? `Demo: interview with ${i.name} rescheduled.${when} (no email sent)` : `Interview with ${i.name} rescheduled.${when} The candidate was emailed.`, true);
+    } catch (e) {
+      iWorking = false; $("rGo").disabled = false; $("rClose").disabled = false;
+      setRMode(rMode);
+      $("mErr").textContent = e.message === "UNAVAILABLE"
+        ? "That time is already booked in Google Calendar. Please choose another date or time."
+        : "Could not reschedule: " + e.message;
+    }
+  }
+
+  // ---- Interview kit layout: headings, numbered questions, bold "Why:", bullets ----
+  function renderKit(text) {
+    const HEAD = /^[A-Z][A-Z0-9 &\/(),'-]{3,}:?$/;
+    const inline = (str) => esc(str)
+      .replace(/\b(Ask|Evidence):/g, "<b>$1:</b>")
+      .replace(/^\[([^\]]+)\]\s*/, '<span style="display:inline-block;font-size:11px;font-weight:600;padding:1px 8px;margin-right:6px;border-radius:999px;background:#ede9fe;color:#7c3aed">$1</span>');
+    let html = "", first = true;
+    for (const line of text.split(/\r?\n/)) {
+      const t = line.trim();
+      if (!t) continue;
+      let m;
+      if (HEAD.test(t)) {
+        html += `<div style="font-size:12px;font-weight:700;letter-spacing:.06em;color:#8b5cf6;border-bottom:1px solid #ede9fe;padding-bottom:6px;margin:${first ? 0 : 22}px 0 12px">${esc(t.replace(/:$/, ""))}</div>`;
+        first = false;
+      } else if ((m = t.match(/^(\d+)\.\s+(.*)$/))) {
+        html += `<div style="display:flex;gap:10px;margin:0 0 6px"><span style="flex:none;width:22px;height:22px;border-radius:999px;background:#ede9fe;color:#7c3aed;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px">${m[1]}</span><span style="font-weight:600;color:#3f3f46">${inline(m[2])}</span></div>`;
+      } else if ((m = t.match(/^Why:\s*(.*)$/i))) {
+        html += `<div style="margin:0 0 16px 32px;color:#71717a"><b style="color:#52525b">Why:</b> ${esc(m[1])}</div>`;
+      } else if ((m = t.match(/^-\s+(.*)$/))) {
+        html += `<div style="display:flex;gap:10px;margin:0 0 10px"><span style="flex:none;color:#a78bfa">&#8226;</span><span style="color:#3f3f46">${inline(m[1])}</span></div>`;
+      } else {
+        html += `<div style="color:#71717a;margin:0 0 10px">${esc(t)}</div>`;
+      }
+    }
+    return html;
+  }
+
+  // ---- Interview kit pop-up ----
+  let kitText = "";
+  function openKit(i) {
+    kitText = String(i.kit || "").trim();
+    $("kitSub").innerHTML = esc(i.name) + " &middot; " + esc(i.job);
+    if (!kitText) {
+      $("kitBody").innerHTML = `<p class="text-zinc-500">No interview kit has been generated for this candidate yet.</p>`;
+      $("kitCopy").classList.add("hidden");
+    } else {
+      $("kitBody").innerHTML = renderKit(kitText);
+      $("kitCopy").classList.remove("hidden");
+      $("kitCopy").textContent = "Copy kit";
+    }
+    $("kitModal").classList.remove("hidden");
+  }
+  function closeKit() { $("kitModal").classList.add("hidden"); $("kitBody").innerHTML = ""; }
+  $("kitX").onclick = closeKit;
+  $("kitClose").onclick = closeKit;
+  $("kitModal").onclick = (e) => { if (e.target === $("kitModal")) closeKit(); };
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeKit(); });
+  $("kitCopy").onclick = async () => {
+    try { await navigator.clipboard.writeText(kitText); $("kitCopy").textContent = "Copied!"; }
+    catch (e) { $("kitCopy").textContent = "Copy failed"; }
+  };
+</script>
+</body>
+</html>
